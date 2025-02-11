@@ -1,3 +1,4 @@
 aiofiles
-pydantic==2.8.2
+fake-useragent==2.0.3 
+capmonstercloudclient==1.6.0
 selenium==4.28.1
