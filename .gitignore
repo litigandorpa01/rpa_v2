@@ -6,5 +6,8 @@
 /monitoring
 /test_bots
 comandos_docker.txt
+__pycache__/
 
+
+.litigandoVenv
 
