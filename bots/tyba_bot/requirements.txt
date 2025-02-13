@@ -1,4 +1,6 @@
 aiofiles
-fake-useragent==2.0.3 
+aio-pika==9.5.4
+selenium-stealth==1.0.6
 capmonstercloudclient==1.6.0
 selenium==4.28.1
+python-dotenv==1.0.1
