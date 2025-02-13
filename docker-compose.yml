@@ -1,0 +1,39 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"    # Puerto para la comunicación AMQP
+      - "15672:15672"  # Puerto para la interfaz de administración web
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  tyba_bot:
+    image: tyba_bot:latest
+    deploy:
+      replicas: 5  # Número de instancias del bot
+      restart_policy:
+        condition: on-failure
+    networks:
+      - mynetwork
+    depends_on:
+      rabbitmq:
+        condition: service_healthy  # Espera a que RabbitMQ esté listo
+
+volumes:
+  rabbitmq_data:
+
+networks:
+  mynetwork:
+    driver: bridge
