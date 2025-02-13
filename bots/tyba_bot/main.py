@@ -1,10 +1,13 @@
 import asyncio
-from app.services.scraper.tyba_scraper import TybaScraper
+from app.services.rabbitmq.consumer import RabbitMQConsumer
 
-if __name__ == "__main__":
-    process_code = "05001418900120240119200"
-    scraper = TybaScraper(
-        process_id=process_code,
-        captcha_type="recaptcha_v3"
-    )
-    asyncio.run(scraper.run())
+async def main():
+    consumer = RabbitMQConsumer()
+    await consumer.connect()
+    await consumer.start_consuming()
+
+if __name__ == '__main__':
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Interrupción manual del programa.")
