@@ -1,0 +1,2 @@
+RABBITMQ_HOST="hola"
+QUEUE_NAME="hola"
