@@ -5,7 +5,7 @@ import logging
 import traceback
 from datetime import datetime
 from app.utils.browser_config import BrowserConfigChrome
-from app.constants import WEBSITE_URL, WEBSITE_KEY, PAGE_ACTION
+from app.constants import WEBSITE_URL, WEBSITE_KEY, PAGE_ACTION,CONSULT_ATTEMPS
 from app.services.captcha.solver_factory import CaptchaSolverFactory
 
 from selenium import webdriver
@@ -21,6 +21,8 @@ class TybaScraper:
         self.website_url = WEBSITE_URL
         self.website_key = WEBSITE_KEY
         self.page_action = PAGE_ACTION
+        self.consult_process_attemps=CONSULT_ATTEMPS
+
         self.process_id = process_id
         self.captcha_type = captcha_type
         self.driver = None
@@ -48,16 +50,15 @@ class TybaScraper:
             raise e
     
     async def consult_process(self):
-        max_intentos = 10 
         intentos = 0
 
-        while intentos < max_intentos:
+        while intentos < self.consult_process_attemps:
             intentos += 1
-            logging.info(f"🔄 Intento {intentos} de {max_intentos}")
+            logging.info(f"🔄 Intento {intentos} de {self.consult_process_attemps}")
 
             try:
                 # Encontrar el campo de texto
-                text_input = WebDriverWait(self.driver, 5).until(
+                text_input = WebDriverWait(self.driver, 3).until(
                     EC.presence_of_element_located((By.XPATH, "//input[@id='MainContent_txtCodigoProceso']"))
                 )
                 time.sleep(random.uniform(2, 4))
@@ -69,19 +70,26 @@ class TybaScraper:
                 # Escribir el código de proceso
                 text_input.send_keys(self.process_id)
 
-                time.sleep(random.uniform(4, 7))
+                time.sleep(random.uniform(4, 6))
 
                 # Resolver CAPTCHA
                 logging.info("Resolviendo CAPTCHA...")
                 solver = CaptchaSolverFactory.get_solver(self.captcha_type)
                 captcha_response = await solver.solve(self.website_url, self.website_key, self.page_action)
-                logging.info("CAPTCHA resuelto")
+                logging.info(f"CAPTCHA resuelto {captcha_response}")
 
                 # Inyectar el token CAPTCHA
                 self.driver.execute_script(f"""
-                    let textarea = document.querySelector("textarea[name='g-recaptcha-response']"); 
-                    if (textarea) {{ textarea.value = '{captcha_response}'; }}
-                """)
+                    (function() {{
+                        let textarea = document.querySelector("textarea[name='g-recaptcha-response']");
+                        if (textarea) {{
+                            textarea.value = '{captcha_response}';
+                            textarea.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                            textarea.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                        }}
+                    }})();
+                    """
+                )
 
                 time.sleep(random.uniform(3, 5))
 
@@ -94,7 +102,7 @@ class TybaScraper:
                 time.sleep(random.uniform(3, 5))
 
                 # Esperar a que aparezca el mensaje de respuesta
-                informative_banner = WebDriverWait(self.driver, 5).until(
+                informative_banner = WebDriverWait(self.driver, 4).until(
                     EC.presence_of_element_located((By.XPATH, "//span[@id='MainContent_UC_MensajeInformativo_lblTitulo']"))
                 )
                 mensaje = informative_banner.text.strip()

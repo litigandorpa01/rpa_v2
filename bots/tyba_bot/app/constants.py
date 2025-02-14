@@ -16,5 +16,8 @@ RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
 QUEUE_NAME = os.getenv("QUEUE_NAME")
 PREFETCH_COUNT = int(os.getenv("PREFETCH_COUNT"))
 
+#SCRAPPERS
+CONSULT_ATTEMPS= int(os.getenv("CONSULT_ATTEMPS"))
+
 
 
