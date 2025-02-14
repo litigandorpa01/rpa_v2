@@ -19,17 +19,17 @@ services:
       retries: 3
       start_period: 10s
 
-  tyba_bot:
-    image: tyba_bot:latest
-    deploy:
-      replicas: 5  # Número de instancias del bot
-      restart_policy:
-        condition: on-failure
-    networks:
-      - mynetwork
-    depends_on:
-      rabbitmq:
-        condition: service_healthy  # Espera a que RabbitMQ esté listo
+  # tyba_bot:
+  #   image: tyba_bot:latest
+  #   deploy:
+  #     replicas: 5  # Número de instancias del bot
+  #     restart_policy:
+  #       condition: on-failure
+  #   networks:
+  #     - mynetwork
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy  # Espera a que RabbitMQ esté listo
 
 volumes:
   rabbitmq_data:
