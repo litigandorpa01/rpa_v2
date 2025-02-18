@@ -37,6 +37,6 @@ class BrowserConfigChrome:
         chrome_options.add_argument("--disable-infobars")
         chrome_options.add_argument("--disable-extensions")
         
-        chrome_options.add_argument("--incognito")
+        # chrome_options.add_argument("--incognito")
 
         return chrome_options
