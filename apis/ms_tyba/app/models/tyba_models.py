@@ -7,6 +7,8 @@ class InvalidIDsModel(BaseModel):
     ids: List[str]
 
 
-# class ProcessFileResponseModel(BaseModel):
-#     total_parsed_ids: int
-    # invalid_ids: InvalidIDsModel
+class ProcessFileResponseModel(BaseModel):
+    task_id:str
+    file_name:str
+    total_ids: int
+    invalid_ids: InvalidIDsModel

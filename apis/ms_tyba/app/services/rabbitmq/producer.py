@@ -1,17 +1,13 @@
 import json
 import asyncio
 import logging
+import aio_pika
 from app.constants import RABBITMQ_HOST, QUEUE_NAME
 
-import aio_pika
-
 class RabbitMQProducer:
-    """
-    Clase asíncrona que encapsula la conexión a RabbitMQ y la publicación de mensajes.
-    """
     def __init__(self):
-        self.host = RABBITMQ_HOST
-        self.queue_name = QUEUE_NAME
+        self.host = "localhost"
+        self.queue_name = "tyba_queue"
         self.connection = None
         self.channel = None
 
@@ -25,47 +21,40 @@ class RabbitMQProducer:
                 port=5672
             )
             self.channel = await self.connection.channel()
-
-            # Declarar la cola como durable para asegurar que los mensajes persistan.
-            await self.channel.declare_queue(self.queue_name, durable=True)
-            logging.info("✅ Conexión a RabbitMQ establecida.")
+                        
+            # Declarar la cola como durable para que sobreviva a reinicios
+            self.queue = await self.channel.declare_queue(self.queue_name, durable=True)
+            logging.info(" Conexión a RabbitMQ establecida.")
         except Exception as e:
-            logging.error(f"❌ Error conectando a RabbitMQ: {e}")
+            logging.info(f"❌ Error conectando a RabbitMQ: {e}")
             raise
 
-    async def publish(self, process_id: str):
-        """
-        Publica un mensaje en la cola con el process_id proporcionado.
-        """
-        if self.channel is None:
-            logging.info("🔄 No hay conexión activa, reconectando...")
+    async def publish_batch(self, messages):
+        """Publica uno o más mensajes en la cola de RabbitMQ."""
+        if not self.channel:
             await self.connect()
 
         try:
-            message = json.dumps({"process_id": process_id})
-            await self.channel.default_exchange.publish(
-                aio_pika.Message(body=message.encode(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
-                routing_key=self.queue_name
-            )
-            logging.info(f"📤 Mensaje enviado con process_id: {process_id}")
+            if isinstance(messages, list):
+                tasks = [
+                    self.channel.default_exchange.publish(
+                        aio_pika.Message(body=json.dumps(msg).encode(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
+                        routing_key=self.queue_name
+                    )
+                    for msg in messages
+                ]
+                await asyncio.gather(*tasks)
+            else:  # Si es un solo mensaje
+                await self.channel.default_exchange.publish(
+                    aio_pika.Message(body=json.dumps(messages).encode(), delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
+                    routing_key=self.queue_name
+                )
+            logging.info(f"📤 Mensaje enviado: {messages}")
         except Exception as e:
-            logging.error(f"❌ Error al publicar mensaje: {e}")
+            logging.error(f"❌ Error publicando mensaje: {e}")
 
     async def close(self):
-        """
-        Cierra la conexión con RabbitMQ.
-        """
+        """Cierra la conexión con RabbitMQ."""
         if self.connection:
             await self.connection.close()
             logging.info("🔌 Conexión a RabbitMQ cerrada.")
-
-# Ejemplo de uso
-async def main():
-    producer = RabbitMQProducer()
-    await producer.connect()
-    await producer.publish("123456")  # Reemplazar con el process_id real
-    await producer.close()
-
-if __name__ == "__main__":
-    asyncio.run(main())
- 
