@@ -52,13 +52,15 @@ class RabbitMQConsumer:
                 despa_liti = data.get("despa_liti")
                 cod_despacho = data.get("cod_despacho")
                 ultima_fecha = data.get("ultima_fecha")
+                interval_days = data.get("interval_days")
 
                 # Ejecutar el scraper con el process_id recibido
                 logging.info(f"Se inicia Scrapper de {despa_liti} - {cod_despacho}")
                 scraper = PublicacionesScraper(
                     despa_liti=despa_liti,
                     cod_despacho=cod_despacho,
-                    ultima_fecha=ultima_fecha
+                    ultima_fecha=ultima_fecha,
+                    interval_days=interval_days
                 )
                 await scraper.run()
 
