@@ -80,7 +80,7 @@ class PublicacionesScraper:
         except Exception as e:
             logging.warning(f"⚠️ Error al aplicar medidas anti-detección: {e}")
  
-    def get_date_links(self) -> dict:
+    def get_external_date_links(self) -> dict:
         """ Extrae las publicaciones y filtra por fecha. """
         try:
             processal_container = WebDriverWait(self.driver, 3).until(
@@ -95,12 +95,19 @@ class PublicacionesScraper:
                     str_date = publish_date_text.split(":")[-1].strip()
                     publication_date = datetime.strptime(str_date, "%Y-%m-%d").date()
 
-                    urls = [link.get_attribute("href") for link in li.find_elements(By.XPATH, ".//a") if link.get_attribute("href")]
+                    url_data = []
+                    links = li.find_elements(By.XPATH, ".//a")
+                    
+                    for link in links:
+                        url = link.get_attribute("href")
+                        if url:
+                            link_text = link.text.strip() or "Sin texto"
+                            url_data.append({link_text: url})
 
                     if publication_date in data:
-                        data[publication_date].extend(urls)  # Si la fecha ya existe, añade los nuevos links
+                        data[publication_date].extend(url_data)  # Si la fecha ya existe, añade los nuevos diccionarios
                     else:
-                        data[publication_date] = urls  # Si la fecha no existe, crea la entrada
+                        data[publication_date] = url_data  # Si la fecha no existe, crea la entrada
                     
                 except Exception:
                     logging.warning("⚠️ No se encontró fecha en un <li>.")
@@ -120,6 +127,10 @@ class PublicacionesScraper:
             logging.error(f"❌ Error en `get_date_links`: {e}")
             raise e
     
+
+    def get_internal_data_links(self,external_data_links:dict )->dict:
+        pass
+
     async def run(self):
         """Ejecuta el scraper y maneja la interacción con la página web."""
         try:
@@ -135,9 +146,10 @@ class PublicacionesScraper:
             #     print("hola")
             # else:
 
-            data_links = self.get_date_links()
-            logging.info(f"🔍 {len(data_links)} fechas encontradas.")
+            external_data_links = self.get_external_date_links()
+            logging.info(f"🔍 {len(external_data_links)} fechas encontradas.")
              
+            #Paso 3 - Descargar documentos internos
 
         
         except Exception as e:
