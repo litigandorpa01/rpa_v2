@@ -18,9 +18,7 @@ class BrowserConfigChrome:
         chrome_options = Options()
 
         # --- MODO HEADLESS ---
-        # Si usas "--headless=new" es posible que se detecte. Puedes probar:
-        # chrome_options.add_argument("--headless=new")
-        # O, alternativamente, usa el modo clásico:
+        chrome_options.add_argument("--headless=new")
         # chrome_options.add_argument("--headless")
 
         chrome_options.add_argument("--disable-gpu")

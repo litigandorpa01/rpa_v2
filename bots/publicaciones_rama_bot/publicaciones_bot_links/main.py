@@ -1,4 +1,5 @@
 import asyncio
+
 from app.services.rabbitmq.consumer import RabbitMQConsumer
 
 async def main():

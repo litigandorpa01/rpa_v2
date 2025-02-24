@@ -1,7 +1,9 @@
 import json
 import asyncio
-import aio_pika
 import logging
+
+import aio_pika
+
 from app.constants import RABBITMQ_HOST,QUEUE_NAME,PREFETCH_COUNT
 from app.services.scraper.publicaciones_scraper import PublicacionesScraper
 
@@ -45,10 +47,9 @@ class RabbitMQConsumer:
         """
         try:
             async with message.process():
-                # Decodificamos el mensaje recibido
                 body = message.body.decode()
                 data = json.loads(body)
-
+             
                 despa_liti = data.get("despa_liti")
                 cod_despacho = data.get("cod_despacho")
                 ultima_fecha = data.get("ultima_fecha")
@@ -66,9 +67,7 @@ class RabbitMQConsumer:
 
 
         except Exception as e:
-            logging.info(f"❌ Error procesando mensaje: {e}")
-            
-            # Registrar el error antes de rechazar el mensaje
+            logging.error(f"❌ Error procesando mensaje: {str(e).splitlines()[0]}")
             await message.nack(requeue=False)
 
     async def start_consuming(self):
