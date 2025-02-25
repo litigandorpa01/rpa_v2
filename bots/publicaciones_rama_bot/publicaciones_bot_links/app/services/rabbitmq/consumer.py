@@ -4,7 +4,7 @@ import logging
 
 import aio_pika
 
-from app.constants import RABBITMQ_HOST,QUEUE_NAME,PREFETCH_COUNT
+from app.constants import RABBITMQ_HOST,SUB_QUEUE_NAME,PREFETCH_COUNT
 from app.services.scraper.publicaciones_scraper import PublicacionesScraper
 
 
@@ -14,7 +14,7 @@ class RabbitMQConsumer:
     """
     def __init__(self):
         self.host = RABBITMQ_HOST
-        self.queue_name = QUEUE_NAME
+        self.queue_name = SUB_QUEUE_NAME
         self.prefetch_count=PREFETCH_COUNT
         self.connection = None
         self.channel = None
@@ -36,7 +36,7 @@ class RabbitMQConsumer:
             
             # Declarar la cola como durable para que sobreviva a reinicios
             self.queue = await self.channel.declare_queue(self.queue_name, durable=True)
-            logging.info(" Conexión a RabbitMQ establecida.")
+            logging.info("Conectado a RabbitMQ - Consumer")
         except Exception as e:
             logging.info(f"❌ Error conectando a RabbitMQ: {e}")
             raise

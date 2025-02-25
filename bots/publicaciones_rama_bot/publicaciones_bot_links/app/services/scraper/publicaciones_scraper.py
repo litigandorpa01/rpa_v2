@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 from app.constants import WEBSITE_URL
 from app.utils.browser_config import BrowserConfigChrome
+from app.services.rabbitmq.producer import RabbitMQProducer
 
 from selenium import webdriver
 from selenium_stealth import stealth
@@ -57,7 +58,7 @@ class PublicacionesScraper:
                     publication_date = datetime.strptime(str_date, "%Y-%m-%d").date()
 
                     url_data = []
-                    links = row.find_elements(By.XPATH, ".//a")
+                    links = row.find_elements(By.XPATH, ".")
 
                     for link in links:
                         url = link.get_attribute("href")
@@ -126,12 +127,12 @@ class PublicacionesScraper:
             raise  # Se escala el error
 
     async def clear_links(self, internal_data_links: dict) -> dict:
-        """Elimina duplicados en los enlaces extraídos."""
+        """Elimina duplicados en los enlaces extraídos y castea clave fecha a str."""
         cleaned_data = {}
 
         async def process_key(key, value_list):
             unique_dicts = set(frozenset(d.items()) for d in value_list)
-            return key, [dict(fset) for fset in unique_dicts]
+            return key.strftime("%Y-%m-%d"), [dict(fset) for fset in unique_dicts]
 
         try:
             tasks = [process_key(key, value_list) for key, value_list in internal_data_links.items()]
@@ -157,10 +158,16 @@ class PublicacionesScraper:
             # Obtener links internos
             internal_data_links = self.get_internal_data_links(external_data_links)
 
-            # Limpiar duplicados
+            # Limpiar duplicados y organizar data
             cleaned_data = await self.clear_links(internal_data_links)
 
             logging.info(f"✅ {len(cleaned_data)}- {self.cod_despacho} fechas procesadas correctamente.")
+            
+            #Publicar data en bot de descargas
+            producer=RabbitMQProducer()
+            await producer.connect()
+            await producer.publish_message(cleaned_data)
+            await producer.close()
 
         except Exception as e:
             logging.error(f"❌ Error crítico en `run`: {e}")

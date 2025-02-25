@@ -2,7 +2,8 @@ import asyncio
 
 from app.services.rabbitmq.consumer import RabbitMQConsumer
 
-async def main():
+
+async def main():    
     consumer = RabbitMQConsumer()
     await consumer.connect()
     await consumer.start_consuming()
