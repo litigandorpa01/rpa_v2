@@ -58,7 +58,7 @@ class PublicacionesScraper:
                     publication_date = datetime.strptime(str_date, "%Y-%m-%d").date()
 
                     url_data = []
-                    links = row.find_elements(By.XPATH, ".")
+                    links = row.find_elements(By.XPATH, ".//a")
 
                     for link in links:
                         url = link.get_attribute("href")
