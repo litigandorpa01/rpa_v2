@@ -1,11 +1,10 @@
-import json
 import asyncio
 import logging
 
 import aio_pika
 
 from app.constants import RABBITMQ_HOST,SUB_QUEUE_NAME,PREFETCH_COUNT
-from app.services.scraper.publicaciones_scraper import PublicacionesScraper
+from app.services.publicaciones_service import PublicacionesService
 
 
 class RabbitMQConsumer:
@@ -46,29 +45,19 @@ class RabbitMQConsumer:
         Función que se ejecuta cuando se recibe un mensaje de RabbitMQ.
         """
         try:
-            async with message.process():
-                body = message.body.decode()
-                data = json.loads(body)
-             
-                despa_liti = data.get("despa_liti")
-                cod_despacho = data.get("cod_despacho")
-                ultima_fecha = data.get("ultima_fecha")
-                interval_days = data.get("interval_days")
+            body = message.body.decode()
+            service = PublicacionesService(body)
+            await service.execute()
 
-                # Ejecutar el scraper con el process_id recibido
-                logging.info(f"Se inicia Scrapper de {despa_liti} - {cod_despacho}")
-                scraper = PublicacionesScraper(
-                    despa_liti=despa_liti,
-                    cod_despacho=cod_despacho,
-                    ultima_fecha=ultima_fecha,
-                    interval_days=interval_days
-                )
-                await scraper.run()
-
+            # Si todo salió bien, confirmar el mensaje manualmente
+            await message.ack()
 
         except Exception as e:
-            logging.error(f"❌ Error procesando mensaje: {str(e).splitlines()[0]}")
-            await message.nack(requeue=False)
+            logging.error(f"❌ Error procesando mensaje: {e}")
+            try:
+                await message.nack(requeue=False)  # NACK solo si no se procesó correctamente
+            except aio_pika.exceptions.MessageProcessError:
+                logging.warning("⚠️ Intento de NACK en un mensaje ya procesado.")
 
     async def start_consuming(self):
         """

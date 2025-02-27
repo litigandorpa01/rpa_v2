@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 
 from app.constants import WEBSITE_URL
 from app.utils.browser_config import BrowserConfigChrome
-from app.services.rabbitmq.producer import RabbitMQProducer
 
 from selenium import webdriver
 from selenium_stealth import stealth
@@ -18,7 +17,7 @@ class PublicacionesScraper:
         self.website_url = WEBSITE_URL
         self.despa_liti = despa_liti
         self.cod_despacho = cod_despacho
-        self.ultima_fecha = datetime.strptime(ultima_fecha, "%d/%m/%Y").date()
+        self.ultima_fecha = ultima_fecha
         self.interval_days = int(interval_days)
         self.driver = None
 
@@ -162,12 +161,8 @@ class PublicacionesScraper:
             cleaned_data = await self.clear_links(internal_data_links)
 
             logging.info(f"✅ {len(cleaned_data)}- {self.cod_despacho} fechas procesadas correctamente.")
-            
-            #Publicar data en bot de descargas
-            producer=RabbitMQProducer()
-            await producer.connect()
-            await producer.publish_message(cleaned_data)
-            await producer.close()
+                        
+            return cleaned_data
 
         except Exception as e:
             logging.error(f"❌ Error crítico en `run`: {e}")
