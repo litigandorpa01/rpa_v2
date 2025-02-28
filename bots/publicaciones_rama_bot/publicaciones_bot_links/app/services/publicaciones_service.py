@@ -1,7 +1,7 @@
 import json
 import logging
 from typing import Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from app.database.database import OracleDB
 from app.services.rabbitmq.producer import RabbitMQProducer
@@ -12,6 +12,7 @@ class PublicacionesService:
         self.body = self.parse_body(body)
         self.db = OracleDB()
         self.scraper = self.initialize_scraper()
+        self.publisher=RabbitMQProducer()
     
     def parse_body(self, body: str) -> Dict[str, Any]:
         """Parsea el body y maneja errores."""
@@ -41,33 +42,51 @@ class PublicacionesService:
             self.body["interval_days"],
         )
     
-    async def db_service(self, data:dict):
-        await self.db.connect()
-        
-        #Comprueba si ya hay registro de las urls en la bd y que tengan estado en
-        fecha_pub="2025-02-05"
-        despa_liti=29530
-        url="https://publicacionesprocesales.ramajudicial.gov.co/documents/6098902/81135016/004+2025+00002+ConcedeImpugnacionFijaAviso.pdf/81ddfab7-7fb5-ffc0-b50c-750e947f8489?t=1738791385027"
-        result = await self.db.check_url(fecha_pub,despa_liti,url)
-        result=bool(result)
-        
-        # if result:
-        #     print("\n📌 Resultados de la consulta:")
-        #     for row in result:
-        #         print(row)
-        # else:
-        #     print("⚠️ No se encontraron datos.")
-        
-        await self.db.close_connection()
+    async def db_service(self, data: dict):
+        try:
+            await self.db.connect()
 
-    async def execute(self):                
+            filter_data = {} 
+
+            for key, value_list in data.items():
+                filter_list = []
+                for item in value_list:
+                    url_text = list(item.keys())[0]
+                    publication_date = key
+                    despa_liti = self.body["despa_liti"]
+                    url = list(item.values())[0]
+                    creation_date = datetime.today().strftime('%Y-%m-%d')
+
+                    # Validamos si está en la base de datos
+                    result = await self.db.check_url(publication_date, despa_liti, url)
+                    if not result:
+                        result = await self.db.add_url_record(despa_liti, url, creation_date, url_text, publication_date)
+                        print("Se agregó dato")
+                        filter_list.append(item)
+
+                if filter_list:
+                    filter_data[key] = filter_list
+
+            await self.db.close_connection()
+
+            return filter_data
+        except Exception as e:
+            print(f"Error en db_service: {e}")
+
+    async def publisher_service(self, data: dict):
+        print("holA")
+
+
+    async def execute(self):     
+        logging.info(f"Proceso Scrapper")           
         data=await self.scraper.run()
-        print("hola bbs")
-        await self.db_service(data)
-        
-          #Publicar data en bot de descargas
-            # producer=RabbitMQProducer()
-            # await producer.connect()
-            # await producer.publish_message(cleaned_data)
-            # await producer.close()
+
+        logging.info(f"Proceso BD")           
+        pub_data=await self.db_service(data)
+
+
+
+        # await producer.connect()
+        # await producer.publish_message(pub_data)
+        # await producer.close()
     

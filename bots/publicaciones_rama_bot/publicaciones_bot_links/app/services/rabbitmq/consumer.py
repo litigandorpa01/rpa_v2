@@ -6,7 +6,6 @@ import aio_pika
 from app.constants import RABBITMQ_HOST,SUB_QUEUE_NAME,PREFETCH_COUNT
 from app.services.publicaciones_service import PublicacionesService
 
-
 class RabbitMQConsumer:
     """
     Clase asíncrona que encapsula la conexión a RabbitMQ y el procesamiento de mensajes.

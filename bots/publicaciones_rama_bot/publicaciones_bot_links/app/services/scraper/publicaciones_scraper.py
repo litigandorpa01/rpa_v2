@@ -11,7 +11,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-
 class PublicacionesScraper:
     def __init__(self, despa_liti, cod_despacho, ultima_fecha, interval_days):
         self.website_url = WEBSITE_URL
@@ -117,8 +116,7 @@ class PublicacionesScraper:
                                 link_text = link.text.strip() or "Sin texto"
                                 value_list.append({link_text: url})
 
-                        value_list[:] = [d for d in value_list if not any(value in (f"{url_detalle}") for value in d.values())]
-                        break
+                        value_list[:] = list(filter(lambda d: all(value != url_detalle for value in d.values()), value_list))
 
             return external_data_links
         except Exception as e:
@@ -159,6 +157,7 @@ class PublicacionesScraper:
 
             # Limpiar duplicados y organizar data
             cleaned_data = await self.clear_links(internal_data_links)
+
 
             logging.info(f"✅ {len(cleaned_data)}- {self.cod_despacho} fechas procesadas correctamente.")
                         
