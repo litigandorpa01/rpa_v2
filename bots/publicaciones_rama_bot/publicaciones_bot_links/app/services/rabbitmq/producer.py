@@ -38,14 +38,12 @@ class RabbitMQProducer:
         """
         try:
             message_body = json.dumps(message).encode()
-            logging.info(message_body)
 
-            
             await self.channel.default_exchange.publish(
                 aio_pika.Message(body=message_body, delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
                 routing_key=self.queue_name,
             )
-            logging.info(f"📤 Mensaje enviado a {self.queue_name}: {message}")
+            logging.info(f"📤 Mensaje enviado a {self.queue_name}")
         except Exception as e:
             logging.error(f"❌ Error enviando mensaje: {e}")
 

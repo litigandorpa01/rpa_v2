@@ -59,6 +59,7 @@ class PublicacionesService:
 
                     # Validamos si está en la base de datos
                     result = await self.db.check_url(publication_date, despa_liti, url)
+                    
                     if not result:
                         result = await self.db.add_url_record(despa_liti, url, creation_date, url_text, publication_date)
                         print("Se agregó dato")
@@ -73,20 +74,36 @@ class PublicacionesService:
         except Exception as e:
             print(f"Error en db_service: {e}")
 
-    async def publisher_service(self, data: dict):
-        print("holA")
+    async def publisher_service(self, pub_data: dict):
+        await self.publisher.connect()
+       # Convertir datetime.date a string
+        body_copy = self.body.copy()
+        body_copy.pop('ultima_fecha', None) 
+        body_copy.pop('interval_days', None)  
+        data = {
+            **body_copy,
+            "download_data": pub_data
+        }
 
+        await self.publisher.publish_message(data)
+        await self.publisher.close()
 
     async def execute(self):     
-        logging.info(f"Proceso Scrapper")           
-        data=await self.scraper.run()
+        try: 
+            logging.info(f"Proceso Scrapper")           
+            data=await self.scraper.run()
 
-        logging.info(f"Proceso BD")           
-        pub_data=await self.db_service(data)
+            logging.info(f"Proceso BD")           
+            pub_data=await self.db_service(data)
+            
+            logging.info(f"Publicacion rabbit")
+            await self.publisher_service(pub_data)
 
+            logging.info(f"Finaliza bot")
+        except Exception as e:
+            logging.error(f"Error en el bot: {e}")
 
-
-        # await producer.connect()
-        # await producer.publish_message(pub_data)
-        # await producer.close()
+        
+        
+      
     
