@@ -1,6 +1,10 @@
 import logging
-import aiohttp
 from abc import ABC, abstractmethod
+
+import aiohttp
+from playwright.async_api import async_playwright
+
+from app.services.downloader.download_scrapper.sharepoint_downloader import Scraper
 
 # Interfaz común para los procesadores de archivos
 class FileProcessor(ABC):
@@ -11,6 +15,7 @@ class FileProcessor(ABC):
 # Procesador para archivos pdf
 class PdfFilesProcessor(FileProcessor):
     async def download_file(self, file_name:str, file_url:str) -> str:
+        return 0
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(file_url) as response:
@@ -29,5 +34,10 @@ class PdfFilesProcessor(FileProcessor):
 
 # Procesador para varios archivos en un sharePoint
 class SharePointFilesProcessor(FileProcessor):
-    async def download_file(self, file_url:str, file_name:str) -> str:
-            return file_url
+    async def download_file(self, file_name:str, file_url:str) -> str:
+        logging.info(file_name)
+        logging.info(file_url)
+        async with async_playwright() as playwright:
+            scraper = Scraper(file_url, file_name)
+            await scraper.run_download(playwright)
+            

@@ -15,4 +15,4 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_SERVICE_NAME = os.getenv("DB_SERVICE_NAME")
-
+DOWNLOAD_FOLDER = os.getenv("DOWNLOAD_FOLDER")

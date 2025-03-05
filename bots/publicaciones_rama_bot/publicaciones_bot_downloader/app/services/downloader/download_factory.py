@@ -1,7 +1,8 @@
 import logging
-import aiohttp
 from abc import ABC, abstractmethod
-from .download_processors import FileProcessor, PdfFilesProcessor ,SharePointFilesProcessor
+from app.services.downloader.download_processors import FileProcessor, PdfFilesProcessor ,SharePointFilesProcessor
+
+import aiohttp
 
 # Interfaz "Factory"
 class ProcessorFactory(ABC):
