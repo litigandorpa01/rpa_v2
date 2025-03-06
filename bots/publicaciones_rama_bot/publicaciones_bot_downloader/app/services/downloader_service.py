@@ -3,12 +3,12 @@ import logging
 from typing import Dict, Any
 
 from app.services.file_manager import FileManager
-from app.services.downloader.download_factory import FileProcessorFactory
+from app.services.downloader.download_factory import FileDownloadFactory
 
 class DownloaderService:
     def __init__(self, body:str):
         self.body = self.parse_body(body)
-        self.factory=FileProcessorFactory()
+        self.factory=FileDownloadFactory()
         self.file_manager=FileManager(
             self.factory
         )
@@ -42,7 +42,10 @@ class DownloaderService:
                 url_text = f"{fecha} - {list(diccionario.keys())[0]}"
                 url=list(diccionario.values())[0]
                 #Se descarga el archivo
-                await self.file_manager.process_file(url_text,url)
+                file_path=await self.file_manager.download_file(url_text,url)
+                logging.info(file_path)
+                await self.file_manager.process_file(file_path)
+                
         logging.info("Finaliza proceso")
 
                 

@@ -17,7 +17,7 @@ class ProcessorFactory(ABC):
         """Obtiene el tipo de contenido del archivo en la URL dada."""
         pass
 
-class FileProcessorFactory(ProcessorFactory):
+class FileDownloadFactory(ProcessorFactory):
     """Fábrica concreta que implementa la creación de procesadores."""
     def create_processor(self, file_extension: str) -> FileProcessor:
         if "application/pdf" in file_extension:

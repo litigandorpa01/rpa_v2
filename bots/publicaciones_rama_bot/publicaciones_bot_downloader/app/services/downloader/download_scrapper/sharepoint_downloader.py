@@ -70,8 +70,8 @@ class Scraper:
                 file_path = os.path.join(self.download_dir, download.suggested_filename)
 
             await download.save_as(file_path)
-            print(f"Archivo descargado en: {file_path}")
             return file_path
+        
         except Exception as e:
             raise RuntimeError(f"Error durante la descarga: {e}")
         
@@ -81,7 +81,8 @@ class Scraper:
             await self.setup_browser(playwright)
             await self.navigate_to_page()
             await self.wait_for_selector_and_click("//div[contains(@data-automationid, 'row-selection-header')]")
-            await self.handle_download()
+            file_path = await self.handle_download()
+            return file_path
         except Exception as e:
             print(f"Ocurrió un error durante el scraping: {e}")
         finally:
