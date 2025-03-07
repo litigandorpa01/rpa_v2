@@ -23,7 +23,7 @@ class FileDownloadFactory(ProcessorFactory):
         if "application/pdf" in file_extension:
             logging.info("Procesador para pdf")
             return PdfFilesProcessor()
-        elif "text/html" in file_extension:
+        elif "text/html" or file_extension:
             logging.info("Procesador para filas en SharePoint")
             return SharePointFilesProcessor()
         else:

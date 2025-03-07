@@ -42,9 +42,11 @@ class DownloaderService:
                 url_text = f"{fecha} - {list(diccionario.keys())[0]}"
                 url=list(diccionario.values())[0]
                 #Se descarga el archivo
-                file_path=await self.file_manager.download_file(url_text,url)
+                file_path, file_extension=await self.file_manager.download_file(url_text,url)
+                
                 logging.info(file_path)
-                await self.file_manager.process_file(file_path)
+                processed_data = await self.file_manager.process_file(file_path,file_extension)
+                logging.info(f"Datos extraídos: {processed_data}")
                 
         logging.info("Finaliza proceso")
 

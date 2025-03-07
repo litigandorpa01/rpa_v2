@@ -16,7 +16,7 @@ class Scraper:
     async def setup_browser(self, playwright):
         """Configura el navegador, contexto y página."""
         try:
-            self.browser = await playwright.chromium.launch(headless=True)
+            self.browser = await playwright.chromium.launch(headless=False)
             self.context = await self.browser.new_context(accept_downloads=True)
             self.page = await self.context.new_page()
         except Exception as e:
@@ -27,13 +27,13 @@ class Scraper:
         if self.page.is_closed():
             raise RuntimeError("La página está cerrada, no se puede navegar.")
         try:
-            await self.page.goto(self.file_url, timeout=10000)
+            await self.page.goto(self.file_url, timeout=20000)
         except TimeoutError:
             raise TimeoutError("Error: Tiempo de espera agotado al intentar cargar la página.")
         except Exception as e:
             raise RuntimeError(f"Error al navegar a la página: {e}")
 
-    async def wait_for_selector_and_click(self, selector, timeout=5000):
+    async def wait_for_selector_and_click(self, selector, timeout=10000):
         """Espera a que un selector esté presente y luego hace clic en él."""
         if self.page.is_closed():
             raise RuntimeError("La página está cerrada, no se puede hacer clic.")
