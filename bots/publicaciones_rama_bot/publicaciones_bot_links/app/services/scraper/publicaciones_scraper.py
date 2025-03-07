@@ -116,7 +116,7 @@ class PublicacionesScraper:
                                 link_text = link.text.strip() or "Sin texto"
                                 value_list.append({link_text: url})
 
-                        value_list[:] = list(filter(lambda d: all(value != url_detalle for value in d.values()), value_list))
+                        # value_list[:] = list(filter(lambda d: all(value != url_detalle for value in d.values()), value_list))
 
             return external_data_links
         except Exception as e:
@@ -124,12 +124,35 @@ class PublicacionesScraper:
             raise  # Se escala el error
 
     async def clear_links(self, internal_data_links: dict) -> dict:
-        """Elimina duplicados en los enlaces extraídos y castea clave fecha a str."""
+        """Elimina elementos que contengan 'VER DETALLE' y evita duplicados con la misma URL."""
         cleaned_data = {}
 
         async def process_key(key, value_list):
-            unique_dicts = set(frozenset(d.items()) for d in value_list)
-            return key.strftime("%Y-%m-%d"), [dict(fset) for fset in unique_dicts]
+            seen_values = set()
+            filtered_list = []
+            values_to_remove = set()
+
+            # Convertir la clave si es de tipo datetime.date
+            key = key.strftime("%Y-%m-%d")
+
+
+            # Valores asociados a "VER DETALLE"
+            for item in value_list:
+                if "VER DETALLE" in item:
+                    values_to_remove.update(item.values())  # Guardamos los valores de "VER DETALLE"
+
+            for item in value_list:
+                for sub_key, sub_value in item.items():
+                    # Si el valor está en la lista de eliminación, lo ignoramos
+                    if sub_value in values_to_remove:
+                        break
+                    # Si ya hemos visto este valor antes, lo ignoramos (para evitar duplicados)
+                    if sub_value not in seen_values:
+                        seen_values.add(sub_value)
+                        filtered_list.append(item)
+                        break  # Evita agregar varias veces el mismo diccionario
+
+            return key, filtered_list
 
         try:
             tasks = [process_key(key, value_list) for key, value_list in internal_data_links.items()]
@@ -141,7 +164,7 @@ class PublicacionesScraper:
             return cleaned_data
         except Exception as e:
             logging.error(f"❌ Error en `clear_links`: {e}")
-            raise  # Se escala el error
+            raise
 
     async def run(self):
         """Ejecuta el scraper y maneja la interacción con la página web."""
@@ -158,7 +181,6 @@ class PublicacionesScraper:
             # Limpiar duplicados y organizar data
             cleaned_data = await self.clear_links(internal_data_links)
 
-
             logging.info(f"✅ {len(cleaned_data)}- {self.cod_despacho} fechas procesadas correctamente.")
                         
             return cleaned_data
@@ -168,6 +190,7 @@ class PublicacionesScraper:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             if self.driver:
                 self.driver.save_screenshot(f"error_{timestamp}.png")
+            raise e
 
         finally:
             if self.driver:
