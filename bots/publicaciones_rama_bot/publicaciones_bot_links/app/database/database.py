@@ -23,6 +23,7 @@ class OracleDB:
             logging.info("✅ Conexión exitosa a la base de datos LITI.")
         except oracledb.DatabaseError as e:
             logging.error(f"❌ Error al conectar a la base de datos: {e}")
+            raise e
 
     async def check_url(self,fecha_pub,despa_liti,url):
         try:
