@@ -2,13 +2,13 @@ import os
 
 from playwright.async_api import TimeoutError
 
-from app.constants import DOWNLOAD_FOLDER
+from app.constants import SHARE_POINT_FOLDER
 
 class Scraper:
     def __init__(self, file_url:str, file_name:str):
         self.file_url = file_url
         self.file_name=file_name
-        self.download_dir = DOWNLOAD_FOLDER
+        self.download_dir = SHARE_POINT_FOLDER
         self.browser = None
         self.context = None
         self.page = None
@@ -54,9 +54,7 @@ class Scraper:
                 await self.page.locator("//button[contains(@data-automationid, 'downloadCommand')]").click()
             
             download = await download_info.value
-            os.makedirs(self.download_dir, exist_ok=True)
-
-            # Si se proporciona un nombre de archivo personalizado
+            
             if self.file_name:
                 # Si el nombre no tiene extensión, agregamos la extensión del archivo descargado
                 if not os.path.splitext(self.file_name)[1]:
@@ -65,9 +63,7 @@ class Scraper:
                     self.file_name += file_extension
                 
                 file_path = os.path.join(self.download_dir, self.file_name)
-            else:
-                # Si no se proporciona un nombre, usamos el nombre sugerido por el servidor
-                file_path = os.path.join(self.download_dir, download.suggested_filename)
+
 
             await download.save_as(file_path)
             return file_path

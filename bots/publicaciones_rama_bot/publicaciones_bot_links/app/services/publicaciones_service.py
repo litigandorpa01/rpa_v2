@@ -62,7 +62,6 @@ class PublicacionesService:
                     
                     if not result:
                         result = await self.db.add_url_record(despa_liti, url, creation_date, url_text, publication_date)
-                        print("Se agregó dato")
                         filter_list.append(item)
 
                 if filter_list:

@@ -1,3 +1,5 @@
+import re
+import os
 import logging
 from pathlib import Path
 from abc import ABC, abstractmethod
@@ -8,6 +10,7 @@ import rarfile
 import aiohttp
 from playwright.async_api import async_playwright
 
+from app.constants import DOCUMENTS_FOLDER,SHARE_POINT_FOLDER
 from app.services.downloader.download_scrapper.sharepoint_downloader import Scraper
 
 class FileProcessor(ABC):
@@ -25,12 +28,12 @@ class PdfFilesProcessor(FileProcessor):
             async with aiohttp.ClientSession() as session:
                 async with session.get(file_url) as response:
                     if response.status == 200:
-                        file_path = Path(f"{file_name}.pdf")
+                        file_path = f"{DOCUMENTS_FOLDER}/{file_name}.pdf"
                         with open(file_path, "wb") as archivo:
                             async for chunk in response.content.iter_chunked(8192):
                                 archivo.write(chunk)
                         logging.info(f"✅ Archivo descargado correctamente: {file_name}")
-                        return str(file_path.resolve())
+                        return file_path
                     else:
                         logging.error(f"❌ Error al descargar el archivo. Código de estado: {response.status}")
         except Exception as e:
@@ -40,10 +43,11 @@ class PdfFilesProcessor(FileProcessor):
         try:
             doc = fitz.open(file_path)
             enlaces = []
+            email_pattern = re.compile(r"mailto:", re.IGNORECASE)  # Expresión regular para detectar emails
             
             for pagina in doc:
                 for enlace in pagina.get_links():
-                    if "uri" in enlace:
+                    if "uri" in enlace and not email_pattern.search(enlace["uri"]):  # Ignorar emails
                         rect = enlace["from"]
                         texto = pagina.get_textbox(rect).strip()
                         enlaces.append({texto: enlace["uri"]})
@@ -60,16 +64,16 @@ class SharePointFilesProcessor(FileProcessor):
             async with async_playwright() as playwright:
                 scraper = Scraper(file_url, file_name)
                 file_path= await scraper.run_download(playwright)
-                file_path=Path(file_path)
-                return str(file_path.resolve())
+                return file_path
         except Exception as e:
             raise e
 
     async def process_file(self, file_path: str) -> dict:
         extracted_data = {}
-        extract_folder = Path(file_path).stem 
-        Path(extract_folder).mkdir(exist_ok=True)
+        folder_name = Path(file_path).stem
+        extract_folder = os.path.join(f"{SHARE_POINT_FOLDER}", folder_name)
         
+        os.makedirs(extract_folder, exist_ok=True)
         try:
             if file_path.endswith(".zip"):
                 with zipfile.ZipFile(file_path, 'r') as zip_ref:
@@ -84,7 +88,8 @@ class SharePointFilesProcessor(FileProcessor):
             for pdf_file in Path(extract_folder).rglob("*.pdf"):
                 pdf_data = await pdf_processor.process_file(str(pdf_file))
                 extracted_data.update(pdf_data)
-            
+                
+            os.remove(file_path)
             return extracted_data
         except Exception as e:
             raise e
