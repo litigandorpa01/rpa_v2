@@ -54,6 +54,7 @@ class DownloaderService:
     
     async def process_internal_data(self,internal_data:list):
         filtered_data = [d for d in internal_data if any(d.values())]
+        print(filtered_data)
         #Se filtran datos con valores en la lista
         for diccionario in filtered_data:
             for nombre_pdf, lista_urls in diccionario.items():  # Extrae nombre y lista de URLs
