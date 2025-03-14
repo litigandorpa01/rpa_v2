@@ -49,6 +49,10 @@ class DownloaderService:
                 url_text = url_text.replace('.pdf', '') if '.pdf' in url_text else url_text
                 file_path, file_extension=await self.file_manager.download_file(url_text,url)
                 processed_data = await self.file_manager.process_file(file_path,file_extension)
+                processed_data.update({"url":url})
+
+                #registro de descarga en bd
+
                 internal_data.append(processed_data)  
         return internal_data
     
@@ -69,9 +73,12 @@ class DownloaderService:
         logging.info("Inicia proceso")
         logging.info("Se crean folders")
         self.create_folders(DOCUMENTS_FOLDER, SHARE_POINT_FOLDER)
+        
+        despa_liti=self.body['despa_liti']
         download_data = self.body['download_data']
         
-        internal_data=await self.process_external_data(download_data)
+        internal_data=await self.process_external_data(download_data, despa_liti)
+
         await self.process_internal_data(internal_data)
                           
         logging.info("Finaliza proceso")

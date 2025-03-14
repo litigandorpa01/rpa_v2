@@ -35,7 +35,7 @@ async def publicaciones_start(
         )
 
         
-@router.get("/so/{task_id}")
+@router.get("/task/{task_id}")
 async def tyba_check_status(task_id: str):
     """Consulta el estado de una tarea de publicación en RabbitMQ."""
     service = PublicacionesService()
