@@ -6,6 +6,7 @@ from typing import Dict, Any
 from app.services.file_manager import FileManager
 from app.constants import DOCUMENTS_FOLDER, SHARE_POINT_FOLDER
 from app.services.downloader.download_factory import FileDownloadFactory
+from app.database.database import OracleDB
 
 class DownloaderService:
     def __init__(self, body:str):
@@ -14,6 +15,7 @@ class DownloaderService:
         self.file_manager=FileManager(
             self.factory
         )
+        self.db=OracleDB()
         
     # Función para garantizar la existencia de carpetas
     def create_folders(self,*folders):
@@ -40,21 +42,38 @@ class DownloaderService:
         except Exception as e:
             logging.error(f"❌ Error procesando el body: {body}. Detalles: {e}")
     
-    async def process_external_data(self,data:list):
+    async def process_external_data(self, download_data:list):
         internal_data=[]
         
-        for fecha, lista_dicts in data.items():
+        for fecha, lista_dicts in download_data.items():
             for diccionario in lista_dicts:
                 url_text, url = next(iter(diccionario.items()))
                 url_text = url_text.replace('.pdf', '') if '.pdf' in url_text else url_text
                 file_path, file_extension=await self.file_manager.download_file(url_text,url)
                 processed_data = await self.file_manager.process_file(file_path,file_extension)
+                
                 processed_data.update({"url":url})
-
-                #registro de descarga en bd
-
                 internal_data.append(processed_data)  
         return internal_data
+    
+    async def update_download_status(self, despa_liti, data:list):
+        try:
+            for item in data:
+                url=item.get('url')
+                size=len(item)
+                if size==2:
+                    #Proceso para filas tipo 1
+                    estado_id=await self.db.update_file_download(despa_liti, url)
+                    
+                    print("hola")
+                    #Proceso para share point
+
+                # else:
+               
+                # print("Hola")
+        except Exception as e:
+            print(e)
+            raise e
     
     async def process_internal_data(self,internal_data:list):
         filtered_data = [d for d in internal_data if any(d.values())]
@@ -77,9 +96,12 @@ class DownloaderService:
         despa_liti=self.body['despa_liti']
         download_data = self.body['download_data']
         
-        internal_data=await self.process_external_data(download_data, despa_liti)
+        data=await self.process_external_data(download_data)
+        
+        await self.db.connect()
+        filter_data= await self.update_download_status(despa_liti, data)
 
-        await self.process_internal_data(internal_data)
+        await self.process_internal_data(filter_data)
                           
         logging.info("Finaliza proceso")
 

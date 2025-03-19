@@ -73,14 +73,16 @@ class OracleDB:
                     ESTADO_DESCARGA, 
                     FECHA_CREACION_URL, 
                     TEXTO_URL, 
-                    FECHA_PUBLICACION
+                    FECHA_PUBLICACION,
+                    DOC_TYPE
                 ) VALUES (
                     :despa_liti, 
                     :url, 
                     'NO', 
                     TO_DATE(:creation_date, 'YYYY-MM-DD'), 
                     :url_text, 
-                    TO_DATE(:publication_date, 'YYYY-MM-DD')
+                    TO_DATE(:publication_date, 'YYYY-MM-DD'),
+                    0
                 )
             """
 

@@ -33,17 +33,17 @@ class Scraper:
         except Exception as e:
             raise RuntimeError(f"Error al navegar a la página: {e}")
 
-    async def wait_for_selector_and_click(self, selector, timeout=10000):
-        """Espera a que un selector esté presente y luego hace clic en él."""
-        if self.page.is_closed():
-            raise RuntimeError("La página está cerrada, no se puede hacer clic.")
-        try:
-            await self.page.wait_for_selector(selector, timeout=timeout)
-            await self.page.locator(selector).click()
-        except TimeoutError:
-            raise TimeoutError(f"Error: Selector '{selector}' no encontrado dentro del tiempo límite.")
-        except Exception as e:
-            raise RuntimeError(f"Error al hacer clic en el selector: {e}")
+    # async def wait_for_selector_and_click(self, selector, timeout=10000):
+    #     """Espera a que un selector esté presente y luego hace clic en él."""
+    #     if self.page.is_closed():
+    #         raise RuntimeError("La página está cerrada, no se puede hacer clic.")
+    #     try:
+    #         await self.page.wait_for_selector(selector, timeout=timeout)
+    #         await self.page.locator(selector).click()
+    #     except TimeoutError:
+    #         raise TimeoutError(f"Error: Selector '{selector}' no encontrado dentro del tiempo límite.")
+    #     except Exception as e:
+    #         raise RuntimeError(f"Error al hacer clic en el selector: {e}")
 
     async def handle_download(self):
         """Maneja la descarga del archivo evitando duplicaciones y usando el nombre personalizado con la extensión correcta."""
@@ -76,7 +76,6 @@ class Scraper:
         try:
             await self.setup_browser(playwright)
             await self.navigate_to_page()
-            await self.wait_for_selector_and_click("//div[contains(@data-automationid, 'row-selection-header')]")
             file_path = await self.handle_download()
             return file_path
         except Exception as e:

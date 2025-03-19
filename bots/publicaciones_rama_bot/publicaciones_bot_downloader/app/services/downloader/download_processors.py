@@ -52,7 +52,10 @@ class PdfFilesProcessor(FileProcessor):
                         texto = pagina.get_textbox(rect).strip()
                         enlaces.append({texto: enlace["uri"]})
             
-            return {Path(file_path).name: enlaces}
+            return {
+                "file_path":file_path,
+                "enlaces": enlaces,
+            }
         except Exception as e:
             raise e
 
@@ -71,18 +74,23 @@ class SharePointFilesProcessor(FileProcessor):
     async def process_file(self, file_path: str) -> dict:
         extracted_data = {}
         folder_name = Path(file_path).stem
-        extract_folder = os.path.join(f"{SHARE_POINT_FOLDER}", folder_name)
+        base_extract_folder  = os.path.join(f"{SHARE_POINT_FOLDER}", folder_name)
         
-        os.makedirs(extract_folder, exist_ok=True)
+        os.makedirs(base_extract_folder , exist_ok=True)
         try:
             if file_path.endswith(".zip"):
                 with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                    zip_ref.extractall(extract_folder)
+                    zip_ref.extractall(base_extract_folder )
             elif file_path.endswith(".rar"):
                 with rarfile.RarFile(file_path, 'r') as rar_ref:
-                    rar_ref.extractall(extract_folder)
+                    rar_ref.extractall(base_extract_folder)
             else:
                 raise ValueError("Formato de archivo no soportado")
+            
+            subfolder = [f for f in Path(base_extract_folder).iterdir() if f.is_dir()]
+
+            if subfolder:
+                extract_folder = str(subfolder[0])
             
             pdf_processor = PdfFilesProcessor()
             for pdf_file in Path(extract_folder).rglob("*.pdf"):

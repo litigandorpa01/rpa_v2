@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import datetime
 
 import oracledb
 
@@ -25,82 +26,42 @@ class OracleDB:
             logging.error(f"❌ Error al conectar a la base de datos: {e}")
             raise e
 
-    async def check_url(self,fecha_pub,despa_liti,url):
+    async def update_file_download(self, despa_liti: int, url: str):
         try:
             cursor = await asyncio.to_thread(self.connection.cursor)
 
+            current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
             query = """
-                SELECT CASE 
-                    WHEN COUNT(*) > 0 THEN 1 
-                    ELSE 0 
-                END AS ES_DESCARGADO
-                FROM liti.CONTROL_ESTADOS_RAMA_TEST 
-                WHERE FECHA_PUBLICACION = TO_DATE(:fecha_pub, 'YYYY-MM-DD') 
-                AND DESPACHO_ID = :despa_liti 
-                AND URL_ESTADO = :url
-                AND ESTADO_DESCARGA = 'SI'
+                UPDATE liti.CONTROL_ESTADOS_RAMA_TEST
+                SET ESTADO_DESCARGA = 'SI',
+                    FECHA_CREACION_ARCHIVO = TO_TIMESTAMP(:current_timestamp, 'YYYY-MM-DD HH24:MI:SS'),
+                    DOC_TYPE = 1
+                WHERE URL_ESTADO = :url 
+                AND DESPACHO_ID = :despa_liti
+                RETURNING ESTADO_ID INTO :estado_id
             """
 
-            # Parámetros correctamente formateados
+            estado_id = cursor.var(oracledb.NUMBER)
+
             params = {
-                "fecha_pub": fecha_pub,
+                "current_timestamp": current_timestamp,
+                "url": url,
                 "despa_liti": despa_liti,
-                "url": url
+                "estado_id": estado_id
             }
 
             await asyncio.to_thread(cursor.execute, query, params)
+            self.connection.commit()
 
-            result = await asyncio.to_thread(cursor.fetchone)  # Obtener un solo resultado
+            estado_id_value = estado_id.getvalue()
             cursor.close()
 
-            return bool(result[0]) if result else False  # Convertir a bool directamente
+            return estado_id_value[0] if estado_id_value else None
 
         except oracledb.DatabaseError as e:
             logging.error(f"❌ Error al ejecutar la consulta: {e}")
-
-    async def add_url_record(self,despa_liti:int,url:str, creation_date:str,url_text:str,publication_date):
-        try:
-            cursor = await asyncio.to_thread(self.connection.cursor)
-
-            query = """
-                MERGE INTO liti.CONTROL_ESTADOS_RAMA_TEST t
-                USING (SELECT :despa_liti AS DESPACHO_ID, :url AS URL_ESTADO FROM dual) src
-                ON (t.DESPACHO_ID = src.DESPACHO_ID AND t.URL_ESTADO = src.URL_ESTADO)
-                WHEN NOT MATCHED THEN
-                INSERT (
-                    DESPACHO_ID, 
-                    URL_ESTADO, 
-                    ESTADO_DESCARGA, 
-                    FECHA_CREACION_URL, 
-                    TEXTO_URL, 
-                    FECHA_PUBLICACION
-                ) VALUES (
-                    :despa_liti, 
-                    :url, 
-                    'NO', 
-                    TO_DATE(:creation_date, 'YYYY-MM-DD'), 
-                    :url_text, 
-                    TO_DATE(:publication_date, 'YYYY-MM-DD')
-                )
-            """
-
-            params = {
-                "despa_liti": despa_liti,
-                "url": url,
-                "creation_date": creation_date,
-                "url_text": url_text,
-                "publication_date": publication_date
-            }
-
-            await asyncio.to_thread(cursor.execute, query, params)  # Ejecutar en hilo separado
-
-            self.connection.commit()  # Asegurar que la transacción se guarda
-
-            cursor.close()
-            return True  # Si todo salió bien, devolver True
-
-        except oracledb.DatabaseError as e:
-            logging.error(f"❌ Error al ejecutar la consulta: {e}")
+            raise e
 
     async def close_connection(self):
         if self.connection:
