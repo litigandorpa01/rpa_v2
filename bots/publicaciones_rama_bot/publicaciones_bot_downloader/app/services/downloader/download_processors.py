@@ -19,7 +19,12 @@ class FileProcessor(ABC):
         pass
     
     @abstractmethod
-    async def process_file(self, file_path: str) -> dict:
+    async def process_file(self, file_path: str, url:str, file_type:int) -> dict:
+        pass
+    
+    #DOC_TYPE db
+    @abstractmethod
+    async def get_file_type()->int:
         pass
 
 class PdfFilesProcessor(FileProcessor):
@@ -39,7 +44,7 @@ class PdfFilesProcessor(FileProcessor):
         except Exception as e:
             raise e
 
-    async def process_file(self, file_path: str) -> dict:
+    async def process_file(self, file_path: str, url:str, file_type:int) -> dict:
         try:
             doc = fitz.open(file_path)
             enlaces = []
@@ -55,9 +60,14 @@ class PdfFilesProcessor(FileProcessor):
             return {
                 "file_path":file_path,
                 "enlaces": enlaces,
+                "file_type":file_type,
+                "url":url
             }
         except Exception as e:
             raise e
+
+    async def get_file_type(self)->int:
+        return 1
 
 class SharePointFilesProcessor(FileProcessor):
     async def download_file(self, file_name:str, file_url:str) -> str:
@@ -71,8 +81,8 @@ class SharePointFilesProcessor(FileProcessor):
         except Exception as e:
             raise e
 
-    async def process_file(self, file_path: str) -> dict:
-        extracted_data = {}
+    async def process_file(self, file_path: str, url:str, file_type:int) -> list:
+        extracted_data = []
         folder_name = Path(file_path).stem
         base_extract_folder  = os.path.join(f"{SHARE_POINT_FOLDER}", folder_name)
         
@@ -94,10 +104,14 @@ class SharePointFilesProcessor(FileProcessor):
             
             pdf_processor = PdfFilesProcessor()
             for pdf_file in Path(extract_folder).rglob("*.pdf"):
-                pdf_data = await pdf_processor.process_file(str(pdf_file))
-                extracted_data.update(pdf_data)
+                pdf_data = await pdf_processor.process_file(str(pdf_file), url, file_type)
+                extracted_data.append(pdf_data)
                 
             os.remove(file_path)
             return extracted_data
         except Exception as e:
             raise e
+
+    async def get_file_type(self)->int:
+        return 3
+    

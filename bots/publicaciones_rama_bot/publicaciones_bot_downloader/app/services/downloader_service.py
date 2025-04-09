@@ -3,10 +3,10 @@ import logging
 from pathlib import Path
 from typing import Dict, Any
 
+from app.database.database import OracleDB
 from app.services.file_manager import FileManager
 from app.constants import DOCUMENTS_FOLDER, SHARE_POINT_FOLDER
 from app.services.downloader.download_factory import FileDownloadFactory
-from app.database.database import OracleDB
 
 class DownloaderService:
     def __init__(self, body:str):
@@ -49,30 +49,35 @@ class DownloaderService:
             for diccionario in lista_dicts:
                 url_text, url = next(iter(diccionario.items()))
                 url_text = url_text.replace('.pdf', '') if '.pdf' in url_text else url_text
+
                 file_path, file_extension=await self.file_manager.download_file(url_text,url)
-                processed_data = await self.file_manager.process_file(file_path,file_extension)
-                
-                processed_data.update({"url":url})
-                internal_data.append(processed_data)  
+                processed_data = await self.file_manager.process_file(file_path, file_extension, url)
+
+                if isinstance(processed_data, list):
+                    internal_data.extend(processed_data)
+                else:
+                    internal_data.append(processed_data)
+
         return internal_data
     
-    async def update_download_status(self, despa_liti, data:list):
+    async def update_download_status(self, despa_liti, data:list)-> list:
         try:
             for item in data:
+                file_type=item.get('file_type')
                 url=item.get('url')
-                size=len(item)
-                if size==2:
-                    #Proceso para filas tipo 1
-                    estado_id=await self.db.update_file_download(despa_liti, url)
-                    
-                    print("hola")
-                    #Proceso para share point
 
-                # else:
-               
-                # print("Hola")
+                if file_type != 3:
+                    status_id=await self.db.update_file_download(despa_liti, url, file_type)
+                else:
+                    status_id=await self.db.update_file_download(despa_liti, url, file_type)
+                
+                item.update({"status_id": status_id})
+
+
+            return data
+    
         except Exception as e:
-            print(e)
+            logging.error(e)
             raise e
     
     async def process_internal_data(self,internal_data:list):
@@ -96,6 +101,7 @@ class DownloaderService:
         despa_liti=self.body['despa_liti']
         download_data = self.body['download_data']
         
+
         data=await self.process_external_data(download_data)
         
         await self.db.connect()

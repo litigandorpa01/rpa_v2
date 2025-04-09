@@ -8,14 +8,14 @@ class FileManager():
     def __init__(self,factory: ProcessorFactory):
         self.factory = factory
     
-    async def process_file(self, file_path: str, file_extension) -> dict:
+    async def process_file(self, file_path: str, file_extension, url:str) -> dict:
         try:
             logging.info(file_extension)
             processor = self.factory.create_processor(file_extension)
-            return await processor.process_file(file_path)
+            file_type = await processor.get_file_type()
+            return await processor.process_file(file_path, url, file_type)
         except Exception as e:
             logging.error(f"Error procesando {file_path}: {e}")
-
 
     async def download_file(self, file_name: str, file_url: str) -> str:
         try:
@@ -42,4 +42,3 @@ class FileManager():
         
         except Exception as e:
             logging.error(f"Error al descargar {file_name} desde {file_url}: {e}")
-    

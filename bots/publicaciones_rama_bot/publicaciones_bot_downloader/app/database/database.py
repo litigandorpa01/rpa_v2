@@ -26,7 +26,7 @@ class OracleDB:
             logging.error(f"❌ Error al conectar a la base de datos: {e}")
             raise e
 
-    async def update_file_download(self, despa_liti: int, url: str):
+    async def update_file_download(self, despa_liti: int, url: str, file_type:int):
         try:
             cursor = await asyncio.to_thread(self.connection.cursor)
 
@@ -36,7 +36,7 @@ class OracleDB:
                 UPDATE liti.CONTROL_ESTADOS_RAMA_TEST
                 SET ESTADO_DESCARGA = 'SI',
                     FECHA_CREACION_ARCHIVO = TO_TIMESTAMP(:current_timestamp, 'YYYY-MM-DD HH24:MI:SS'),
-                    DOC_TYPE = 1
+                    DOC_TYPE = :file_type
                 WHERE URL_ESTADO = :url 
                 AND DESPACHO_ID = :despa_liti
                 RETURNING ESTADO_ID INTO :estado_id
@@ -48,7 +48,8 @@ class OracleDB:
                 "current_timestamp": current_timestamp,
                 "url": url,
                 "despa_liti": despa_liti,
-                "estado_id": estado_id
+                "estado_id": estado_id,
+                "file_type":file_type
             }
 
             await asyncio.to_thread(cursor.execute, query, params)
