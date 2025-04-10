@@ -2,13 +2,12 @@ import os
 
 from playwright.async_api import TimeoutError
 
-from app.constants import SHARE_POINT_FOLDER
 
 class Scraper:
-    def __init__(self, file_url:str, file_name:str):
+    def __init__(self, file_url:str, file_name:str, output_dir):
         self.file_url = file_url
         self.file_name=file_name
-        self.download_dir = SHARE_POINT_FOLDER
+        self.download_dir = output_dir
         self.browser = None
         self.context = None
         self.page = None
@@ -16,7 +15,7 @@ class Scraper:
     async def setup_browser(self, playwright):
         """Configura el navegador, contexto y página."""
         try:
-            self.browser = await playwright.chromium.launch(headless=False)
+            self.browser = await playwright.chromium.launch(headless=True)
             self.context = await self.browser.new_context(accept_downloads=True)
             self.page = await self.context.new_page()
         except Exception as e:

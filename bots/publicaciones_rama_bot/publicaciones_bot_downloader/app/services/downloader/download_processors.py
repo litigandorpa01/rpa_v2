@@ -10,12 +10,11 @@ import rarfile
 import aiohttp
 from playwright.async_api import async_playwright
 
-from app.constants import DOCUMENTS_FOLDER,SHARE_POINT_FOLDER
 from app.services.downloader.download_scrapper.sharepoint_downloader import Scraper
 
 class FileProcessor(ABC):
     @abstractmethod
-    async def download_file(self, file_url: str, file_name: str) -> str:
+    async def download_file(self, file_url: str, file_name: str, output_dir:Path) -> str:
         pass
     
     @abstractmethod
@@ -28,12 +27,12 @@ class FileProcessor(ABC):
         pass
 
 class PdfFilesProcessor(FileProcessor):
-    async def download_file(self, file_name: str, file_url: str) -> str:
+    async def download_file(self, file_name: str, file_url: str, output_dir:Path) -> str:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(file_url) as response:
                     if response.status == 200:
-                        file_path = f"{DOCUMENTS_FOLDER}/{file_name}.pdf"
+                        file_path = f"{output_dir}/{file_name}.pdf"
                         with open(file_path, "wb") as archivo:
                             async for chunk in response.content.iter_chunked(8192):
                                 archivo.write(chunk)
@@ -70,12 +69,12 @@ class PdfFilesProcessor(FileProcessor):
         return 1
 
 class SharePointFilesProcessor(FileProcessor):
-    async def download_file(self, file_name:str, file_url:str) -> str:
+    async def download_file(self, file_name:str, file_url:str, output_dir:Path) -> str:
         try:
             logging.info(file_name)
             logging.info(file_url)
             async with async_playwright() as playwright:
-                scraper = Scraper(file_url, file_name)
+                scraper = Scraper(file_url, file_name, output_dir)
                 file_path= await scraper.run_download(playwright)
                 return file_path
         except Exception as e:
@@ -84,7 +83,8 @@ class SharePointFilesProcessor(FileProcessor):
     async def process_file(self, file_path: str, url:str, file_type:int) -> list:
         extracted_data = []
         folder_name = Path(file_path).stem
-        base_extract_folder  = os.path.join(f"{SHARE_POINT_FOLDER}", folder_name)
+        base_dir = os.path.dirname(file_path)
+        base_extract_folder  = os.path.join(f"{base_dir}", folder_name)
         
         os.makedirs(base_extract_folder , exist_ok=True)
         try:

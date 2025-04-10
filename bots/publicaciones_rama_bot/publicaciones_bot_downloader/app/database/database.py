@@ -55,10 +55,94 @@ class OracleDB:
             await asyncio.to_thread(cursor.execute, query, params)
             self.connection.commit()
 
+            # Obtener el valor y asegurarse de que sea un entero
             estado_id_value = estado_id.getvalue()
+            result_id = int(estado_id_value[0]) if estado_id_value else None
+            
             cursor.close()
 
-            return estado_id_value[0] if estado_id_value else None
+            if result_id is None:
+                raise ValueError("No se encontró el registro para actualizar")
+            
+            return result_id
+
+        except oracledb.DatabaseError as e:
+            logging.error(f"❌ Error al ejecutar la consulta: {e}")
+            raise e
+    
+    async def subfile_record_exists(self, despa_liti: int, url: str, file_name: str) -> bool:
+        try:
+            cursor = await asyncio.to_thread(self.connection.cursor)
+
+            query = """
+                SELECT 1 FROM liti.CONTROL_ESTADOS_RAMA_TEST
+                WHERE DESPACHO_ID = :despa_liti
+                AND URL_ESTADO = :url
+                AND TEXTO_URL = :file_name
+                FETCH FIRST 1 ROWS ONLY
+            """
+
+            params = {
+                "despa_liti": despa_liti,
+                "url": url,
+                "file_name": file_name
+            }
+
+            await asyncio.to_thread(cursor.execute, query, params)
+            result = await asyncio.to_thread(cursor.fetchone)
+            cursor.close()
+
+            return result is not None  # True si encontró algo, False si no
+
+        except oracledb.DatabaseError as e:
+            logging.error(f"❌ Error al consultar existencia del registro: {e}")
+            raise e
+
+    async def add_subfile_record(self, despa_liti: int, url: str, file_type: int, file_name: str, publication_date: str) -> int:
+        creation_date = datetime.today().strftime('%Y-%m-%d')
+        try:
+            cursor = await asyncio.to_thread(self.connection.cursor)
+            estado_id = cursor.var(int)
+            query = """
+                INSERT INTO liti.CONTROL_ESTADOS_RAMA_TEST (
+                    DESPACHO_ID, 
+                    URL_ESTADO, 
+                    ESTADO_DESCARGA, 
+                    FECHA_CREACION_URL,
+                    FECHA_CREACION_ARCHIVO,
+                    TEXTO_URL, 
+                    FECHA_PUBLICACION,
+                    DOC_TYPE
+                ) VALUES (
+                    :despa_liti, 
+                    :url, 
+                    'SI', 
+                    TO_DATE(:creation_date, 'YYYY-MM-DD'),
+                    TO_DATE(:creation_date, 'YYYY-MM-DD'), 
+                    :file_name, 
+                    TO_DATE(:publication_date, 'YYYY-MM-DD'),
+                    :file_type
+                ) RETURNING ESTADO_ID INTO :estado_id
+            """
+
+            params = {
+                "despa_liti": despa_liti,
+                "url": url,
+                "creation_date": creation_date,
+                "file_name": file_name,
+                "publication_date": publication_date,
+                "file_type": file_type,
+                "estado_id": estado_id
+            }
+
+            await asyncio.to_thread(cursor.execute, query, params)
+
+            self.connection.commit()
+            result_value = estado_id.getvalue()
+            result_id = int(result_value[0] if isinstance(result_value, list) else result_value)
+            cursor.close()
+
+            return result_id
 
         except oracledb.DatabaseError as e:
             logging.error(f"❌ Error al ejecutar la consulta: {e}")
