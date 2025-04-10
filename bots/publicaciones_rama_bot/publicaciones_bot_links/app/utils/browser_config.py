@@ -18,7 +18,7 @@ class BrowserConfigChrome:
         chrome_options = Options()
 
         # --- MODO HEADLESS ---
-        # chrome_options.add_argument("--headless=new")
+        chrome_options.add_argument("--headless=new")
         # chrome_options.add_argument("--headless")
 
         chrome_options.add_argument("--disable-gpu")

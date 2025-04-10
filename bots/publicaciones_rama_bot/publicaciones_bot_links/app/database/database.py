@@ -25,23 +25,21 @@ class OracleDB:
             logging.error(f"❌ Error al conectar a la base de datos: {e}")
             raise e
 
-    async def check_url(self,fecha_pub,despa_liti,url):
+    async def check_url(self, fecha_pub, despa_liti,url):
+        cursor = None
         try:
             cursor = await asyncio.to_thread(self.connection.cursor)
-
+            
             query = """
-                SELECT CASE 
-                    WHEN COUNT(*) > 0 THEN 1 
-                    ELSE 0 
-                END AS ES_DESCARGADO
+                SELECT 1
                 FROM liti.CONTROL_ESTADOS_RAMA_TEST 
                 WHERE FECHA_PUBLICACION = TO_DATE(:fecha_pub, 'YYYY-MM-DD') 
                 AND DESPACHO_ID = :despa_liti 
                 AND URL_ESTADO = :url
                 AND ESTADO_DESCARGA = 'SI'
+                AND ROWNUM = 1
             """
 
-            # Parámetros correctamente formateados
             params = {
                 "fecha_pub": fecha_pub,
                 "despa_liti": despa_liti,
@@ -49,16 +47,15 @@ class OracleDB:
             }
 
             await asyncio.to_thread(cursor.execute, query, params)
+            result = await asyncio.to_thread(cursor.fetchone)
 
-            result = await asyncio.to_thread(cursor.fetchone)  # Obtener un solo resultado
-            cursor.close()
-
-            return bool(result[0]) if result else False  # Convertir a bool directamente
+            return result is not None
 
         except oracledb.DatabaseError as e:
             logging.error(f"❌ Error al ejecutar la consulta: {e}")
 
     async def add_url_record(self,despa_liti:int,url:str, creation_date:str,url_text:str,publication_date):
+        
         try:
             cursor = await asyncio.to_thread(self.connection.cursor)
 
@@ -102,7 +99,7 @@ class OracleDB:
             return True  # Si todo salió bien, devolver True
 
         except oracledb.DatabaseError as e:
-            logging.error(f"❌ Error al ejecutar la consulta: {e}")
+            raise e
 
     async def close_connection(self):
         if self.connection:

@@ -8,7 +8,7 @@ from app.services.rabbitmq.producer import RabbitMQProducer
 from app.services.scraper.publicaciones_scraper import PublicacionesScraper
 
 class PublicacionesService:
-    def __init__(self, body:str):
+    def __init__(self, body:str):   
         self.body = self.parse_body(body)
         self.db = OracleDB()
         self.scraper = self.initialize_scraper()
@@ -44,17 +44,14 @@ class PublicacionesService:
     
     async def db_service(self, data: dict):
         try:
-            await self.db.connect()
-
             filter_data = {} 
 
             for key, value_list in data.items():
                 filter_list = []
                 for item in value_list:
-                    url_text = list(item.keys())[0]
                     publication_date = key
                     despa_liti = self.body["despa_liti"]
-                    url = list(item.values())[0]
+                    (url_text, url), = item.items() 
                     creation_date = datetime.today().strftime('%Y-%m-%d')
 
                     # Validamos si está en la base de datos
@@ -71,7 +68,7 @@ class PublicacionesService:
 
             return filter_data
         except Exception as e:
-            print(f"Error en db_service: {e}")
+            raise e
 
     async def publisher_service(self, pub_data: dict):
         await self.publisher.connect()
@@ -89,7 +86,8 @@ class PublicacionesService:
 
     async def execute(self):     
         try: 
-            logging.info(f"Proceso Scrapper")           
+            await self.db.connect()           
+            logging.info(f"Proceso Scrapper")
             data=await self.scraper.run()
 
             logging.info(f"Proceso BD")           
